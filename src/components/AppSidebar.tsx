@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Sidebar,
@@ -16,16 +15,15 @@ import {
   Lock, 
   LogIn, 
   UserPlus,
-  BookOpen,
   Search,
   Brain,
   HelpCircle,
-  Clock,
   Target
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
+import { useApp } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
 
 const menuItems = [
   {
@@ -78,11 +76,20 @@ const applyItems = [
 ];
 
 export function AppSidebar() {
-  const [activeSection, setActiveSection] = useState("dashboard");
+  const { activeSection, setActiveSection } = useApp();
   const [authOpen, setAuthOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleSectionClick = (sectionId: string) => {
+    console.log(`Navigating to section: ${sectionId}`);
     setActiveSection(sectionId);
+    
+    if (sectionId !== "dashboard") {
+      toast({
+        title: "Feature Coming Soon",
+        description: `${sectionId.replace("-", " ")} feature is under development.`,
+      });
+    }
   };
 
   return (

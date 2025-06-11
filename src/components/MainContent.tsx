@@ -1,11 +1,13 @@
-
 import { useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Medal, Award, ChevronDown } from "lucide-react";
+import { Trophy, Medal, Award, ChevronDown, Plus, Search } from "lucide-react";
+import { useApp } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
+import { CaseCard } from "@/components/CaseCard";
+import { Input } from "@/components/ui/input";
 
 const medicalCases = [
   {
@@ -66,23 +68,57 @@ const leaderboard = [
 ];
 
 export function MainContent() {
+  const { userStats, selectedCase } = useApp();
   const [activeTab, setActiveTab] = useState("Common Cases");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({
+    search: "All",
+    setting: "All", 
+    rotation: "All",
+    system: "All"
+  });
+  const { toast } = useToast();
+
+  const handleStartCase = () => {
+    console.log("Starting a new case");
+    toast({
+      title: "New Case",
+      description: "Creating a new medical case simulation...",
+    });
+  };
+
+  const filteredCases = medicalCases.filter(case_ =>
+    case_.condition.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    case_.age.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <main className="flex-1 bg-gray-50 p-6">
       <div className="flex items-center gap-4 mb-6">
         <SidebarTrigger />
-        <Button className="bg-green-500 hover:bg-green-600 text-white">
-          + Start a Case
+        <Button 
+          className="bg-green-500 hover:bg-green-600 text-white transition-colors"
+          onClick={handleStartCase}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Start a Case
         </Button>
+        {selectedCase && (
+          <div className="ml-auto bg-blue-100 px-4 py-2 rounded-lg">
+            <span className="text-sm text-blue-800">
+              Active Case: {selectedCase.age} with {selectedCase.condition}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold mb-2">38% Avg</div>
-            <div className="text-gray-600 text-sm">Full Simulator Cases Average</div>
+            <div className="text-3xl font-bold mb-2">{userStats.fullSimAvg}% Avg</div>
+            <div className="text-gray-600 text-sm mb-4">Full Simulator Cases Average</div>
+            <Progress value={userStats.fullSimAvg} className="h-2" />
             <div className="flex items-center mt-4">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-blue-500 rounded"></div>
@@ -91,10 +127,11 @@ export function MainContent() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold mb-2">75% Avg</div>
-            <div className="text-gray-600 text-sm">Quick Simulator Cases Average</div>
+            <div className="text-3xl font-bold mb-2">{userStats.quickSimAvg}% Avg</div>
+            <div className="text-gray-600 text-sm mb-4">Quick Simulator Cases Average</div>
+            <Progress value={userStats.quickSimAvg} className="h-2" />
             <div className="flex items-center mt-4">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-purple-500 rounded"></div>
@@ -103,27 +140,28 @@ export function MainContent() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="text-lg font-semibold mb-2">Badges Earned</div>
             <div className="flex items-center gap-2 mb-4">
               <div className="flex items-center gap-1">
                 <Trophy className="w-5 h-5 text-yellow-500" />
-                <span className="text-sm">Gold 1</span>
+                <span className="text-sm">Gold {userStats.badges.gold}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Medal className="w-5 h-5 text-gray-400" />
-                <span className="text-sm">Silver 0</span>
+                <span className="text-sm">Silver {userStats.badges.silver}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Award className="w-5 h-5 text-orange-500" />
-                <span className="text-sm">Bronze 0</span>
+                <span className="text-sm">Bronze {userStats.badges.bronze}</span>
               </div>
             </div>
+            <Progress value={(userStats.badges.gold + userStats.badges.silver + userStats.badges.bronze) * 10} className="h-2" />
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="text-lg font-semibold mb-2">All Time Leaderboard</div>
             <div className="flex justify-between items-center mb-2">
@@ -134,7 +172,7 @@ export function MainContent() {
               {leaderboard.slice(0, 2).map((user) => (
                 <div key={user.rank} className="flex justify-between items-center text-sm">
                   <span>{user.rank}. {user.name}</span>
-                  <span>{user.points} pts</span>
+                  <span className="font-medium">{user.points} pts</span>
                 </div>
               ))}
             </div>
@@ -163,62 +201,59 @@ export function MainContent() {
             </div>
           </div>
           
-          {/* Filter Options */}
-          <div className="grid grid-cols-4 gap-4 mt-4">
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Search</label>
-              <Button variant="outline" className="w-full justify-between">
-                All <ChevronDown className="w-4 h-4" />
-              </Button>
+          {/* Search and Filter Options */}
+          <div className="space-y-4 mt-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search cases..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Setting</label>
-              <Button variant="outline" className="w-full justify-between">
-                All <ChevronDown className="w-4 h-4" />
-              </Button>
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Rotation</label>
-              <Button variant="outline" className="w-full justify-between">
-                All <ChevronDown className="w-4 h-4" />
-              </Button>
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">System</label>
-              <Button variant="outline" className="w-full justify-between">
-                All <ChevronDown className="w-4 h-4" />
-              </Button>
+            
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">Search</label>
+                <Button variant="outline" className="w-full justify-between">
+                  All <ChevronDown className="w-4 h-4" />
+                </Button>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">Setting</label>
+                <Button variant="outline" className="w-full justify-between">
+                  All <ChevronDown className="w-4 h-4" />
+                </Button>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">Rotation</label>
+                <Button variant="outline" className="w-full justify-between">
+                  All <ChevronDown className="w-4 h-4" />
+                </Button>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">System</label>
+                <Button variant="outline" className="w-full justify-between">
+                  All <ChevronDown className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
         
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {medicalCases.map((case_) => (
-              <Card key={case_.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0"></div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-1">
-                        {case_.age} with {case_.condition}
-                      </h3>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <div>Full Sim: {case_.difficulty}</div>
-                        <div>Quick Sim: {case_.quickSim}</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <Button className="w-full bg-green-500 hover:bg-green-600 text-white">
-                      Select
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {filteredCases.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No cases found matching your search criteria.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCases.map((case_) => (
+                <CaseCard key={case_.id} case_={case_} />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </main>
